@@ -1,0 +1,103 @@
+import cv2
+import os
+import numpy as np
+import pyttsx3 
+import threading
+
+# Use LBPH Face Recognizer
+model = cv2.face.LBPHFaceRecognizer_create()
+
+# Train the face recognizer
+model.train(images, labels)
+
+
+# Define the dimensions for face images
+width, height = 130, 100
+
+# Load the pre-trained face cascade classifier
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+# Initialize the camera
+webcam = cv2.VideoCapture(0)
+
+# Define a function to resize the image with aspect ratio intact
+def maintain_aspect_ratio_resize(image, width=None, height=None, inter=cv2.INTER_AREA):
+    # Grab the image size and initialize dimensions
+    dim = None
+    (h, w) = image.shape[:2]
+
+    # Return original image if no need to resize
+    if width is None and height is None:
+        return image
+
+    # We are resizing height if width is none
+    if width is None:
+        # Calculate the ratio of the height and construct the dimensions
+        r = height / float(h)
+        dim = (int(w * r), height)
+    # Resize the image if height is none
+    else:
+        # Calculate the ratio of the width and construct the dimensions
+        r = width / float(w)
+        dim = (width, int(h * r))
+
+    # Return the resized image
+    return cv2.resize(image, dim, interpolation=inter)
+
+# Define a function to process frames in a separate thread
+def process_frames():
+    while True:
+        # Read a frame from the camera
+        ret, frame = webcam.read()
+
+        # Check if frame is captured successfully
+        if not ret:
+            break
+
+        # Resize the frame for faster processing
+        resized_frame = maintain_aspect_ratio_resize(frame, width=400)
+
+        # Convert the frame to grayscale
+        gray = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2GRAY)
+
+        # Perform face detection
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+        # Loop through detected faces
+        for (x, y, w, h) in faces:
+            # Extract the face ROI
+            face_roi = gray[y:y+h, x:x+w]
+
+            # Resize the face ROI for recognition
+            face_roi_resized = cv2.resize(face_roi, (width, height))
+
+            # Recognize the face using the trained model
+            label, confidence = model.predict(face_roi_resized)
+
+            # Draw a rectangle around the detected face
+            cv2.rectangle(resized_frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+            # Display recognition result if confidence is high enough
+            if confidence < 100:
+                # Get the name associated with the predicted label
+                name = "Person " + str(label)
+                # Draw the recognized name and confidence level on the frame
+                cv2.putText(resized_frame, f'{name} - {confidence:.2f}%', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            
+        # Display the frame
+        cv2.imshow('Face Recognition', resized_frame)
+
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+# Start the processing thread
+processing_thread = threading.Thread(target=process_frames)
+processing_thread.start()
+
+# Wait for the processing thread to finish
+processing_thread.join()
+
+# Release the camera and close OpenCV windows
+webcam.release()
+cv2.destroyAllWindows()
