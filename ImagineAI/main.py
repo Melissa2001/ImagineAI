@@ -1,4 +1,5 @@
 import cv2
+import cv2.face
 import numpy as np
 import pyttsx3
 import os
@@ -7,12 +8,14 @@ import torch
 import time
 from pathlib import Path
 import speech_recognition as sr
+from PIL import Image
+import pytesseract
 
 # Initialize the text-to-speech engine
 engine = pyttsx3.init()
 
 # Path to YOLOv5 weights
-weights_path = r"E:ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
+weights_path = r"E:\ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
 
 # Load the pre-trained YOLOv5 object detection model
 sys.path.append(str(Path(weights_path).parents[0]))  # add yolov5/ to path
@@ -26,13 +29,6 @@ model = attempt_load(weights_path)  # load FP32 model
 stride = int(model.stride.max())  # model stride
 names = model.module.names if hasattr(model, 'module') else model.names  # get class names
 
-# Initialize face recognizer
-face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-size = 4
-haar_file = 'haarcascade_frontalface_default.xml'
-datasets = 'datasets'
-
-# Function to detect objects in a frame and convert the results to speech
 # Function to detect objects in a frame and convert the results to speech
 def detect_objects(frame):
     global last_recognition_time
@@ -242,9 +238,45 @@ def save_new_face():
     webcam.release()
     cv2.destroyAllWindows()
 
+# Text to Speech Code
+def tesseract(image):
+    path_to_tesseract = r"E:\Tesseract\tesseract.exe"  
+    pytesseract.pytesseract.tesseract_cmd = path_to_tesseract
+    text = pytesseract.image_to_string(image)
+    return text
+
+def speak_text(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
+
+def text_recognition():
+    camera = cv2.VideoCapture(0)
+
+    while True:
+        _, img = camera.read()
+        
+        # Perform text detection
+        text = tesseract(Image.fromarray(img))
+        print("Detected Text:", text)
+        
+        # Speak the detected text
+        speak_text(text)
+        
+        # Display the image with detected text
+        cv2.imshow('Text detection', img)
+        
+        # Exit loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    camera.release()
+    cv2.destroyAllWindows()
+
+
 # Execute different functions based on voice commands
 def execute_command(command):
-    if command == "facial":
+    if command == "recognition":
         recognize_faces()
     elif command == "object":
         cap = cv2.VideoCapture(0)  # Use webcam source 0
@@ -268,6 +300,8 @@ def execute_command(command):
         cv2.destroyAllWindows()
     elif command == "new face":
         save_new_face()
+    elif command == "scanning":
+        text_recognition()
 
 # Voice command recognition
 def voice_command_recognition():
