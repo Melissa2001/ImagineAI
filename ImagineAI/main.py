@@ -15,7 +15,7 @@ import pytesseract
 engine = pyttsx3.init()
 
 # Path to YOLOv5 weights
-weights_path = r"E:\ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
+weights_path = r"C:\Users\CHRISTINE\Documents\KARUN\programs\ImagineAI\ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
 
 # Load the pre-trained YOLOv5 object detection model
 sys.path.append(str(Path(weights_path).parents[0]))  # add yolov5/ to path
@@ -96,7 +96,7 @@ def recognize_faces():
 
     size = 4
     haar_file = 'haarcascade_frontalface_default.xml'
-    datasets = 'datasets'
+    datasets = 'imagineAI\datasets'
 
     # Part 1: Create a face recognizer
     print('Recognizing Face. Please be in sufficient light...')
@@ -240,7 +240,7 @@ def save_new_face():
 
 # Text to Speech Code
 def tesseract(image):
-    path_to_tesseract = r"E:\Tesseract\tesseract.exe"  
+    path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  
     pytesseract.pytesseract.tesseract_cmd = path_to_tesseract
     text = pytesseract.image_to_string(image)
     return text
@@ -298,7 +298,7 @@ def execute_command(command):
         # Release resources
         cap.release()
         cv2.destroyAllWindows()
-    elif command == "new face":
+    elif command == "detection":
         save_new_face()
     elif command == "scanning":
         text_recognition()
