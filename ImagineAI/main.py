@@ -95,7 +95,7 @@ def recognize_faces():
     model = cv2.face.LBPHFaceRecognizer_create()
 
     size = 4
-    haar_file = 'haarcascade_frontalface_default.xml'
+    haar_file = 'ImagineAI\haarcascade_frontalface_default.xml'
     datasets = 'imagineAI\datasets'
 
     # Part 1: Create a face recognizer
@@ -173,7 +173,7 @@ def recognize_faces():
                     persons_in_frame.append(person_id)
 
         # Remove persons who are no longer in the frame
-        persons_in_frame = [person_id for person_id in persons_in_frame if time.time() - last_recognition_time.get(person_id, 0) < 10]
+        persons_in_frame = [person_id for person_id in persons_in_frame if time.time() - last_recognition_time.get(person_id, 0) < 5]
 
         cv2.imshow('OpenCV', im)
 
@@ -188,8 +188,8 @@ def recognize_faces():
 
 # Function to save a new face
 def save_new_face():
-    datasets = 'datasets'
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml') 
+    datasets = 'imagineAI\datasets'
+    face_cascade = cv2.CascadeClassifier('ImagineAI\haarcascade_frontalface_default.xml') 
     webcam = cv2.VideoCapture(0) 
     width, height = 130, 100
 
