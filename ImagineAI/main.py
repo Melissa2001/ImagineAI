@@ -93,6 +93,10 @@ def detect_objects(frame):
 
 # Function for facial recognition
 def facial_recognition():
+    # Initialize necessary variables
+    persons_in_frame = []
+    last_recognition_time = {}
+
     # Use LBPH Face Recognizer
     model = cv2.face.LBPHFaceRecognizer_create()
 
@@ -127,9 +131,6 @@ def facial_recognition():
     # Part 2: Use the recognizer on a camera stream
     face_cascade = cv2.CascadeClassifier(haar_file)
     webcam = cv2.VideoCapture(0)
-
-    # Dictionary to store last recognition time for each person
-    last_recognition_time = {}
 
     while True:
         (status, im) = webcam.read()  # Read from camera
@@ -182,6 +183,7 @@ def facial_recognition():
     # Release the webcam and close all OpenCV windows
     webcam.release()
     cv2.destroyAllWindows()
+
 
 # Function to save a new face
 def save_new_face():
@@ -304,13 +306,19 @@ def recognize_voice_command():
             return ""
 
 # Main function
+# Inside the main function
 def main():
     while True:
         # Recognize voice commands
         command = recognize_voice_command()
 
         # Execute the corresponding action based on the voice command
-        execute_command(command)
-
+        if command == "object":
+            # Capture a frame from the camera
+            _, frame = cv2.VideoCapture(0).read()
+            # Call detect_objects with the captured frame
+            detect_objects(frame)
+        else:
+            execute_command(command)
 if __name__ == "__main__":
     main()
