@@ -10,6 +10,9 @@ import speech_recognition as sr
 from PIL import Image
 import pytesseract
 
+# Set the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
 # Initialize the text-to-speech engine
 engine = pyttsx3.init()
 
@@ -89,7 +92,7 @@ def detect_objects(frame):
                 cv2.putText(frame, label, (int(xyxy[0]), int(xyxy[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
 # Function for facial recognition
-def recognize_faces():
+def facial_recognition():
     # Use LBPH Face Recognizer
     model = cv2.face.LBPHFaceRecognizer_create()
 
@@ -127,7 +130,6 @@ def recognize_faces():
 
     # Dictionary to store last recognition time for each person
     last_recognition_time = {}
-    persons_in_frame = []
 
     while True:
         (status, im) = webcam.read()  # Read from camera
@@ -240,7 +242,7 @@ def text_recognition():
         _, img = camera.read()
         
         # Perform text detection
-        text = pytesseract.image_to_string(Image.fromarray(img))
+        text = pytesseract.image_to_string(img)
         print("Detected Text:", text)
 
         # Speak the detected text
@@ -262,7 +264,7 @@ def execute_command(command):
     if command == "object":
         detect_objects()
     elif command == "facial":
-        recognize_faces()
+        facial_recognition()
     elif command == "detection":
         save_new_face()
     elif command == "scanning":
