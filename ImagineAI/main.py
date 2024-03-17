@@ -1,5 +1,4 @@
 import cv2
-import cv2.face
 import numpy as np
 import pyttsx3
 import os
@@ -128,8 +127,6 @@ def recognize_faces():
 
     # Dictionary to store last recognition time for each person
     last_recognition_time = {}
-    
-    # List to keep track of persons currently in the frame
     persons_in_frame = []
 
     while True:
@@ -161,13 +158,12 @@ def recognize_faces():
                 # Check if the person has been recognized recently
                 if person_id not in persons_in_frame:
                     cv2.putText(im, f'{person_name}- {confidence:.0f}', (x-10, y-10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
-                    
+
                     if person_name != "Unknown":
                         # Say the person's name using text-to-speech
-                        engine = pyttsx3.init()  # Initialize the text-to-speech engine
                         engine.say(person_name + " is in front of you")  # Speak the person's name
-                        engine.runAndWait() 
-                    
+                        engine.runAndWait()
+
                     # Update last recognition time for this person
                     last_recognition_time[person_id] = time.time()
                     persons_in_frame.append(person_id)
@@ -177,9 +173,8 @@ def recognize_faces():
 
         cv2.imshow('OpenCV', im)
 
-        # Check for the 'Esc' key press
-        key = cv2.waitKey(10)
-        if key == 27:
+        # Exit if 'q' is pressed
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
     # Release the webcam and close all OpenCV windows
@@ -189,12 +184,11 @@ def recognize_faces():
 # Function to save a new face
 def save_new_face():
     datasets = 'imagineAI\datasets'
-    face_cascade = cv2.CascadeClassifier('ImagineAI\haarcascade_frontalface_default.xml') 
-    webcam = cv2.VideoCapture(0) 
+    face_cascade = cv2.CascadeClassifier('ImagineAI\haarcascade_frontalface_default.xml')
+    webcam = cv2.VideoCapture(0)
     width, height = 130, 100
 
     # Get the name of the new person through audio input
-    engine = pyttsx3.init()
     engine.say("Please say the name of the new person.")
     engine.runAndWait()
 
@@ -214,42 +208,31 @@ def save_new_face():
         return
 
     # Create directory for the new person
-    path = os.path.join(datasets, name) 
-    if not os.path.isdir(path): 
-        os.mkdir(path) 
+    path = os.path.join(datasets, name)
+    if not os.path.isdir(path):
+        os.mkdir(path)
 
     count = 1
-    while count < 30: 
-        _, im = webcam.read() 
-        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY) 
-        faces = face_cascade.detectMultiScale(gray, 1.3, 4) 
-        for (x, y, w, h) in faces: 
-            cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2) 
-            face = gray[y:y + h, x:x + w] 
-            face_resize = cv2.resize(face, (width, height)) 
-            cv2.imwrite('% s/% s.png' % (path, count), face_resize) 
+    while count < 30:
+        _, im = webcam.read()
+        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.3, 4)
+        for (x, y, w, h) in faces:
+            cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            face = gray[y:y + h, x:x + w]
+            face_resize = cv2.resize(face, (width, height))
+            cv2.imwrite('% s/% s.png' % (path, count), face_resize)
             count += 1
-        
-        cv2.imshow('OpenCV', im) 
-        key = cv2.waitKey(10) 
-        if key == 27: 
+
+        cv2.imshow('OpenCV', im)
+        key = cv2.waitKey(10)
+        if key == 27:
             break
 
     webcam.release()
     cv2.destroyAllWindows()
 
-# Text to Speech Code
-def tesseract(image):
-    path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  
-    pytesseract.pytesseract.tesseract_cmd = path_to_tesseract
-    text = pytesseract.image_to_string(image)
-    return text
-
-def speak_text(text):
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
-
+# Function for text recognition
 def text_recognition():
     camera = cv2.VideoCapture(0)
 
@@ -257,55 +240,39 @@ def text_recognition():
         _, img = camera.read()
         
         # Perform text detection
-        text = tesseract(Image.fromarray(img))
+        text = pytesseract.image_to_string(Image.fromarray(img))
         print("Detected Text:", text)
-        
+
         # Speak the detected text
-        speak_text(text)
-        
+        engine.say(text)
+        engine.runAndWait()
+
         # Display the image with detected text
         cv2.imshow('Text detection', img)
-        
-        # Exit loop if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+
+        # Exit if 'q' is pressed
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
     camera.release()
     cv2.destroyAllWindows()
 
-
 # Execute different functions based on voice commands
 def execute_command(command):
-    if command == "recognition":
+    if command == "object":
+        detect_objects()
+    elif command == "facial":
         recognize_faces()
-    elif command == "object":
-        cap = cv2.VideoCapture(0)  # Use webcam source 0
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Detect objects in the frame
-            detect_objects(frame)
-
-            # Display the frame
-            cv2.imshow('Object Detection', frame)
-
-            # Exit if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        # Release resources
-        cap.release()
-        cv2.destroyAllWindows()
     elif command == "detection":
         save_new_face()
     elif command == "scanning":
         text_recognition()
+    elif command == "exit":
+        sys.exit()  # Exit the program
 
 # Voice command recognition
-def voice_command_recognition():
-   # Initialize recognizer instance
+def recognize_voice_command():
+    # Initialize recognizer instance
     recognizer = sr.Recognizer()
 
     # Use the default microphone as the audio source
@@ -322,13 +289,26 @@ def voice_command_recognition():
 
             print("Recognized command:", command)
 
-            # Execute the recognized command
-            execute_command(command.lower())
+            return command.lower()
 
         except sr.WaitTimeoutError:
             print("No voice command detected within the timeout period.")
+            return ""
         except sr.UnknownValueError:
             print("Could not understand the audio.")
+            return ""
         except sr.RequestError as e:
             print("Error accessing the Google Speech Recognition API:", e)
-voice_command_recognition()
+            return ""
+
+# Main function
+def main():
+    while True:
+        # Recognize voice commands
+        command = recognize_voice_command()
+
+        # Execute the corresponding action based on the voice command
+        execute_command(command)
+
+if __name__ == "__main__":
+    main()
