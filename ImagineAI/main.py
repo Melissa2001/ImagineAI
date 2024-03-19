@@ -338,7 +338,7 @@ def execute_command(command):
         # Release resources
         cap.release()
         cv2.destroyAllWindows()
-    elif command == "new face":
+    elif command == "detection":
         save_new_face()
     elif command == "scanning":
         text_recognition()
