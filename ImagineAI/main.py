@@ -15,19 +15,24 @@ import pytesseract
 engine = pyttsx3.init()
 
 # Path to YOLOv5 weights
-weights_path = r"E:\ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
+weights_path = "D:\Github\ImagineAI\ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
 
 # Load the pre-trained YOLOv5 object detection model
 sys.path.append(str(Path(weights_path).parents[0]))  # add yolov5/ to path
+
 from models.experimental import attempt_load
 from utils.general import non_max_suppression, scale_boxes
 from utils.torch_utils import select_device
 
 # Load YOLOv5 model
-device = select_device('')
+device = select_device("")
 model = attempt_load(weights_path)  # load FP32 model
+
 stride = int(model.stride.max())  # model stride
-names = model.module.names if hasattr(model, 'module') else model.names  # get class names
+names = (
+    model.module.names if hasattr(model, "module") else model.names
+)  # get class names
+
 
 # Function to detect objects in a frame and convert the results to speech
 def detect_objects(frame):
@@ -35,14 +40,17 @@ def detect_objects(frame):
     global recognized_objects  # Declare recognized_objects as global
 
     # Initialize recognized_objects if not defined
-    if 'recognized_objects' not in globals():
+    if "recognized_objects" not in globals():
         recognized_objects = set()
 
     # Define cooldown time
     cooldown_time = 15  # in seconds
 
     # Check if cooldown time has elapsed
-    if 'last_recognition_time' not in globals() or time.time() - last_recognition_time >= cooldown_time:
+    if (
+        "last_recognition_time" not in globals()
+        or time.time() - last_recognition_time >= cooldown_time
+    ):
         recognized_objects.clear()
         last_recognition_time = time.time()
 
@@ -73,7 +81,7 @@ def detect_objects(frame):
             # Loop through detections and draw bounding boxes
             for *xyxy, conf, cls in reversed(det):
                 class_name = names[int(cls)]
-                label = f'{class_name}'
+                label = f"{class_name}"
 
                 # Check if the object has been recognized recently
                 if class_name not in recognized_objects:
@@ -86,8 +94,23 @@ def detect_objects(frame):
                     # Update last recognition time
                     last_recognition_time = time.time()
 
-                cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (255, 0, 0), 2)
-                cv2.putText(frame, label, (int(xyxy[0]), int(xyxy[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                cv2.rectangle(
+                    frame,
+                    (int(xyxy[0]), int(xyxy[1])),
+                    (int(xyxy[2]), int(xyxy[3])),
+                    (255, 0, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    label,
+                    (int(xyxy[0]), int(xyxy[1] - 10)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 0, 0),
+                    2,
+                )
+
 
 # Function for facial recognition
 def recognize_faces():
@@ -95,15 +118,15 @@ def recognize_faces():
     model = cv2.face.LBPHFaceRecognizer_create()
 
     size = 4
-    haar_file = 'haarcascade_frontalface_default.xml'
-    datasets = 'datasets'
+    haar_file = r"D:\Github\ImagineAI\ImagineAI\facial.txt"
+    datasets = r"D:\Github\ImagineAI\ImagineAI\datasets"
 
     # Part 1: Create a face recognizer
-    print('Recognizing Face. Please be in sufficient light...')
+    print("Recognizing Face. Please be in sufficient light...")
 
     # Create lists for images and corresponding names
     (images, labels, names, id) = ([], [], {}, 0)
-    for (subdirs, dirs, files) in os.walk(datasets):
+    for subdirs, dirs, files in os.walk(datasets):
         for subdir in dirs:
             names[id] = subdir
             subjectpath = os.path.join(datasets, subdir)
@@ -128,7 +151,7 @@ def recognize_faces():
 
     # Dictionary to store last recognition time for each person
     last_recognition_time = {}
-    
+
     # List to keep track of persons currently in the frame
     persons_in_frame = []
 
@@ -141,9 +164,9 @@ def recognize_faces():
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-        for (x, y, w, h) in faces:
+        for x, y, w, h in faces:
             cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            face = gray[y:y + h, x:x + w]
+            face = gray[y : y + h, x : x + w]
             face_resize = cv2.resize(face, (width, height))
 
             # Recognize the face using the trained model
@@ -160,22 +183,35 @@ def recognize_faces():
 
                 # Check if the person has been recognized recently
                 if person_id not in persons_in_frame:
-                    cv2.putText(im, f'{person_name}- {confidence:.0f}', (x-10, y-10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
-                    
+                    cv2.putText(
+                        im,
+                        f"{person_name}- {confidence:.0f}",
+                        (x - 10, y - 10),
+                        cv2.FONT_HERSHEY_PLAIN,
+                        1,
+                        (0, 255, 0),
+                    )
+
                     if person_name != "Unknown":
                         # Say the person's name using text-to-speech
                         engine = pyttsx3.init()  # Initialize the text-to-speech engine
-                        engine.say(person_name + " is in front of you")  # Speak the person's name
-                        engine.runAndWait() 
-                    
+                        engine.say(
+                            person_name + " is in front of you"
+                        )  # Speak the person's name
+                        engine.runAndWait()
+
                     # Update last recognition time for this person
                     last_recognition_time[person_id] = time.time()
                     persons_in_frame.append(person_id)
 
         # Remove persons who are no longer in the frame
-        persons_in_frame = [person_id for person_id in persons_in_frame if time.time() - last_recognition_time.get(person_id, 0) < 10]
+        persons_in_frame = [
+            person_id
+            for person_id in persons_in_frame
+            if time.time() - last_recognition_time.get(person_id, 0) < 10
+        ]
 
-        cv2.imshow('OpenCV', im)
+        cv2.imshow("OpenCV", im)
 
         # Check for the 'Esc' key press
         key = cv2.waitKey(10)
@@ -186,11 +222,12 @@ def recognize_faces():
     webcam.release()
     cv2.destroyAllWindows()
 
+
 # Function to save a new face
 def save_new_face():
-    datasets = 'datasets'
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml') 
-    webcam = cv2.VideoCapture(0) 
+    datasets = "datasets"
+    face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+    webcam = cv2.VideoCapture(0)
     width, height = 130, 100
 
     # Get the name of the new person through audio input
@@ -214,60 +251,63 @@ def save_new_face():
         return
 
     # Create directory for the new person
-    path = os.path.join(datasets, name) 
-    if not os.path.isdir(path): 
-        os.mkdir(path) 
+    path = os.path.join(datasets, name)
+    if not os.path.isdir(path):
+        os.mkdir(path)
 
     count = 1
-    while count < 30: 
-        _, im = webcam.read() 
-        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY) 
-        faces = face_cascade.detectMultiScale(gray, 1.3, 4) 
-        for (x, y, w, h) in faces: 
-            cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2) 
-            face = gray[y:y + h, x:x + w] 
-            face_resize = cv2.resize(face, (width, height)) 
-            cv2.imwrite('% s/% s.png' % (path, count), face_resize) 
+    while count < 30:
+        _, im = webcam.read()
+        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.3, 4)
+        for x, y, w, h in faces:
+            cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            face = gray[y : y + h, x : x + w]
+            face_resize = cv2.resize(face, (width, height))
+            cv2.imwrite("% s/% s.png" % (path, count), face_resize)
             count += 1
-        
-        cv2.imshow('OpenCV', im) 
-        key = cv2.waitKey(10) 
-        if key == 27: 
+
+        cv2.imshow("OpenCV", im)
+        key = cv2.waitKey(10)
+        if key == 27:
             break
 
     webcam.release()
     cv2.destroyAllWindows()
 
+
 # Text to Speech Code
 def tesseract(image):
-    path_to_tesseract = r"E:\Tesseract\tesseract.exe"  
+    path_to_tesseract = r"E:\Tesseract\tesseract.exe"
     pytesseract.pytesseract.tesseract_cmd = path_to_tesseract
     text = pytesseract.image_to_string(image)
     return text
+
 
 def speak_text(text):
     engine = pyttsx3.init()
     engine.say(text)
     engine.runAndWait()
 
+
 def text_recognition():
     camera = cv2.VideoCapture(0)
 
     while True:
         _, img = camera.read()
-        
+
         # Perform text detection
         text = tesseract(Image.fromarray(img))
         print("Detected Text:", text)
-        
+
         # Speak the detected text
         speak_text(text)
-        
+
         # Display the image with detected text
-        cv2.imshow('Text detection', img)
-        
+        cv2.imshow("Text detection", img)
+
         # Exit loop if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     camera.release()
@@ -289,10 +329,10 @@ def execute_command(command):
             detect_objects(frame)
 
             # Display the frame
-            cv2.imshow('Object Detection', frame)
+            cv2.imshow("Object Detection", frame)
 
             # Exit if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
         # Release resources
@@ -303,9 +343,10 @@ def execute_command(command):
     elif command == "scanning":
         text_recognition()
 
+
 # Voice command recognition
 def voice_command_recognition():
-   # Initialize recognizer instance
+    # Initialize recognizer instance
     recognizer = sr.Recognizer()
 
     # Use the default microphone as the audio source
@@ -315,7 +356,9 @@ def voice_command_recognition():
 
         try:
             # Capture audio data from the microphone
-            audio_data = recognizer.listen(source, timeout=10)  # Listen for up to 5 seconds for a command
+            audio_data = recognizer.listen(
+                source, timeout=10
+            )  # Listen for up to 5 seconds for a command
 
             # Recognize speech using Google Speech Recognition
             command = recognizer.recognize_google(audio_data)
@@ -331,4 +374,6 @@ def voice_command_recognition():
             print("Could not understand the audio.")
         except sr.RequestError as e:
             print("Error accessing the Google Speech Recognition API:", e)
+
+
 voice_command_recognition()
