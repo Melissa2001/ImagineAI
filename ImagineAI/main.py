@@ -32,7 +32,7 @@ stride = int(model.stride.max())  # model stride
 names = model.module.names if hasattr(model, 'module') else model.names  # get class names
 
 # Function to detect objects in a frame and convert the results to speech
-def detect_objects(frame):
+def detect_objects():
     global last_recognition_time
     global recognized_objects  # Declare recognized_objects as global
 
@@ -48,48 +48,69 @@ def detect_objects(frame):
         recognized_objects.clear()
         last_recognition_time = time.time()
 
-    # Resize frame to the model input size
-    img = cv2.resize(frame, (640, 640))
-    img = img[..., ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
-    img = np.ascontiguousarray(img)
+    # Open camera stream
+    cap = cv2.VideoCapture(0)
 
-    # Convert image to torch tensor
-    img = torch.from_numpy(img).to(device)
-    img = img.float()  # uint8 to fp16/32
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3:
-        img = img.unsqueeze(0)
+    while True:
+        # Read a frame from the camera
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    # Predict
-    pred = model(img, augment=False)[0]
+        # Resize frame to the model input size
+        img = cv2.resize(frame, (640, 640))
+        img = img[..., ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
+        img = np.ascontiguousarray(img)
 
-    # Apply NMS
-    pred = non_max_suppression(pred, 0.4, 0.5, classes=None, agnostic=False)
+        # Convert image to torch tensor
+        img = torch.from_numpy(img).to(device)
+        img = img.float()  # uint8 to fp16/32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
 
-    # Process detections
-    for i, det in enumerate(pred):
-        # If detections exist
-        if len(det):
-            det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], frame.shape).round()
+        # Predict
+        pred = model(img, augment=False)[0]
 
-            # Loop through detections and draw bounding boxes
-            for *xyxy, conf, cls in reversed(det):
-                class_name = names[int(cls)]
-                label = f'{class_name}'
+        # Apply NMS
+        pred = non_max_suppression(pred, 0.4, 0.5, classes=None, agnostic=False)
 
-                # Check if the object has been recognized recently
-                if class_name not in recognized_objects:
-                    recognized_objects.add(class_name)
+        # Process detections
+        for i, det in enumerate(pred):
+            # If detections exist
+            if len(det):
+                det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], frame.shape).round()
 
-                    # Convert class name to speech
-                    engine.say(class_name)
-                    engine.runAndWait()
+                # Loop through detections and draw bounding boxes
+                for *xyxy, conf, cls in reversed(det):
+                    class_name = names[int(cls)]
+                    label = f'{class_name}'
 
-                    # Update last recognition time
-                    last_recognition_time = time.time()
+                    # Check if the object has been recognized recently
+                    if class_name not in recognized_objects:
+                        recognized_objects.add(class_name)
 
-                cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (255, 0, 0), 2)
-                cv2.putText(frame, label, (int(xyxy[0]), int(xyxy[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                        # Convert class name to speech
+                        engine.say(class_name)
+                        engine.runAndWait()
+
+                        # Update last recognition time
+                        last_recognition_time = time.time()
+
+                    cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (255, 0, 0), 2)
+                    cv2.putText(frame, label, (int(xyxy[0]), int(xyxy[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        # Display the frame
+        cv2.imshow('Object Detection', frame)
+
+        # Break loop if 'q' or 'esc' key is pressed
+        key = cv2.waitKey(1)
+        if key in [ord('q'), 27]:  # 'q' or 'esc' key
+            break
+
+    # Release the camera and close OpenCV windows
+    cap.release()
+    cv2.destroyAllWindows()
 
 # Function for facial recognition
 def facial_recognition():
@@ -313,12 +334,8 @@ def main():
         command = recognize_voice_command()
 
         # Execute the corresponding action based on the voice command
-        if command == "object":
-            # Capture a frame from the camera
-            _, frame = cv2.VideoCapture(0).read()
-            # Call detect_objects with the captured frame
-            detect_objects(frame)
-        else:
-            execute_command(command)
+        execute_command(command)
+
 if __name__ == "__main__":
     main()
+
