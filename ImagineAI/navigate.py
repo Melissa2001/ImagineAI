@@ -10,7 +10,7 @@ import time
 engine = pyttsx3.init()
 
 # Path to YOLOv5 weights
-weights_path = r"E:Trial\Chatgpt\yolov5\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
+weights_path = r"C:\Users\CHRISTINE\Documents\KARUN\programs\ImagineAI\ImagineAI\yolov5s.pt"  # Update with the path to the downloaded YOLOv5 weights
 
 # Load the pre-trained YOLOv5 object detection model
 sys.path.append(str(Path(weights_path).parents[0]))  # add yolov5/ to path
